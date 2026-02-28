@@ -1,19 +1,19 @@
 class Orchestra < Formula
   desc "AI-powered Git worktree and tmux session manager with modern TUI"
   homepage "https://github.com/humanunsupervised/orchestra"
-  version "0.5.50"
+  version "0.5.51"
   license "Proprietary"
 
   # Binary-only distribution - downloads pre-compiled packages
   if OS.mac? && Hardware::CPU.intel?
     url "https://github.com/humanunsupervised/orchestra/releases/download/v#{version}/orchestra-macos-intel.tar.gz"
-    sha256 "e1f96e350cf281ab7a4963465d9b4ce90b3a86fd7d0c34f7cb2c06b3a7ad3ea2"
+    sha256 "3780357925ab09c6a3ee914ac941c972e8ffd81d87411e97d6e66296439f6363"
   elsif OS.mac? && Hardware::CPU.arm?
     url "https://github.com/humanunsupervised/orchestra/releases/download/v#{version}/orchestra-macos-arm64.tar.gz"
-    sha256 "bf8253f84d12336af518f2f45bf3498b931b6e5a2d2906eac73d0e968431f670"
+    sha256 "eec3991a40473dd836ddc9c426f4ee8aa80e2f563560b69636cd62c9c0d2b176"
   elsif OS.linux? && Hardware::CPU.intel?
     url "https://github.com/humanunsupervised/orchestra/releases/download/v#{version}/orchestra-linux-x64.tar.gz"
-    sha256 "1d95668eb4330dacad39cf1163c91d049e6415a369e65ad7f49b3169020ba675"
+    sha256 "b0041001026adb8ea0aa38528a5a1cf6afb6fa2fbd78a85ae6f4c34066e0468c"
   else
     odie "Orchestra is not available for #{OS.kernel_name} #{Hardware::CPU.arch}"
   end
@@ -31,7 +31,7 @@ class Orchestra < Formula
     libexec.install "gw.sh"
     libexec.install "gw-bridge.sh"
     libexec.install "commands.sh"
-    libexec.install "copy_env.sh"
+    libexec.install "gw-env-copy"
     libexec.install "orchestra-local.sh"
     
     # Install API scripts
@@ -58,6 +58,7 @@ class Orchestra < Formula
       #!/bin/bash
       export GW_ORCHESTRATOR_ROOT="#{libexec}"
       export GW_TUI_BIN="#{bin}/orchestra-bin"
+      export GW_ENV_COPY_BIN="#{libexec}/gw-env-copy"
       exec "#{libexec}/#{script_name}" "$@"
     EOS
   end
@@ -68,6 +69,7 @@ class Orchestra < Formula
       # Orchestra wrapper with hanging fix
       export GW_ORCHESTRATOR_ROOT="#{libexec}"
       export GW_TUI_BIN="#{bin}/orchestra-bin"
+      export GW_ENV_COPY_BIN="#{libexec}/gw-env-copy"
       
       # Fixed wrapper logic - routes commands to avoid stdout capture hanging
       case "${1:-}" in
