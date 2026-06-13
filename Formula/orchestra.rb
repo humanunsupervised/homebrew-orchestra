@@ -1,19 +1,19 @@
 class Orchestra < Formula
   desc "AI-powered Git worktree and tmux session manager with modern TUI"
   homepage "https://github.com/humanunsupervised/orchestra"
-  version "0.5.77"
+  version "0.5.78"
   license "Proprietary"
 
   # Binary-only distribution - downloads pre-compiled packages
   if OS.mac? && Hardware::CPU.intel?
     url "https://github.com/humanunsupervised/orchestra/releases/download/v#{version}/orchestra-macos-intel.tar.gz"
-    sha256 "d05a39207dfd9154e69ba57c9d7dea9c63870f647b140b2bebb6964f0f6806d1"
+    sha256 "0d93e8cb1007e8fd72381282300470870009c4595e1c4d77aaf9bbd35dce1955"
   elsif OS.mac? && Hardware::CPU.arm?
     url "https://github.com/humanunsupervised/orchestra/releases/download/v#{version}/orchestra-macos-arm64.tar.gz"
-    sha256 "80a381a3c1b7015a9db294abf7c8d68551833aa05f02133c01cfeeaa17778cd7"
+    sha256 "16952d53bf859454c3567235708a8844e0edaaca3e5e85c10f6e5540612f51b9"
   elsif OS.linux? && Hardware::CPU.intel?
     url "https://github.com/humanunsupervised/orchestra/releases/download/v#{version}/orchestra-linux-x64.tar.gz"
-    sha256 "a46e54ccf063fed281345bb1655f4e18b499b6cfd8db7cd71d5387a1454f2a22"
+    sha256 "b28de81bf1dbeeef56f34f972b50a0e3fc1499784fc09ef37c04de5174d0091d"
   else
     odie "Orchestra is not available for #{OS.kernel_name} #{Hardware::CPU.arch}"
   end
@@ -23,16 +23,17 @@ class Orchestra < Formula
   depends_on "jq"
 
   def install
-    # Install pre-compiled binary (renamed from gw-tui in the package)
+    # Install pre-compiled binary (renamed from tui in the package)
     bin.install "orchestra" => "orchestra-bin"
     
     # Install runtime scripts to libexec
-    libexec.install "gwr.sh"
-    libexec.install "gw.sh"
-    libexec.install "gw-bridge.sh"
-    libexec.install "commands.sh"
-    libexec.install "gw-env-copy"
+    libexec.install "orchestra.sh"
+    libexec.install "orchestra-cli.sh"
+    libexec.install "services.sh"
+    libexec.install "env-copy"
     libexec.install "orchestra-local.sh"
+    libexec.install "shell"
+    libexec.install "server"
     
     # Install API scripts
     (libexec/"api").mkpath
@@ -40,10 +41,9 @@ class Orchestra < Formula
     (libexec/"api").install "api/tmux.sh"
     
     # Create wrapper scripts that set correct paths
-    (bin/"gwr").write wrapper_script("gwr.sh")
-    (bin/"gw").write wrapper_script("gw.sh")
+    (bin/"orchestra-cli").write wrapper_script("orchestra-cli.sh")
     
-    # Create primary orchestra command (same as gwr for TUI interface)
+    # Create primary orchestra command for TUI interface
     (bin/"orchestra").write orchestra_wrapper_script()
     
     (bin/"orchestra-local").write <<~EOS
@@ -58,7 +58,7 @@ class Orchestra < Formula
       #!/bin/bash
       export GW_ORCHESTRATOR_ROOT="#{libexec}"
       export GW_TUI_BIN="#{bin}/orchestra-bin"
-      export GW_ENV_COPY_BIN="#{libexec}/gw-env-copy"
+      export GW_ENV_COPY_BIN="#{libexec}/env-copy"
       exec "#{libexec}/#{script_name}" "$@"
     EOS
   end
@@ -69,13 +69,13 @@ class Orchestra < Formula
       # Orchestra wrapper with hanging fix
       export GW_ORCHESTRATOR_ROOT="#{libexec}"
       export GW_TUI_BIN="#{bin}/orchestra-bin"
-      export GW_ENV_COPY_BIN="#{libexec}/gw-env-copy"
+      export GW_ENV_COPY_BIN="#{libexec}/env-copy"
       
       # Fixed wrapper logic - routes commands to avoid stdout capture hanging
       case "${1:-}" in
         ""|"--debug"|"-d"|"--help"|"-h"|"--version")
           # Interactive TUI operations - run directly to avoid stdout capture
-          exec "#{libexec}/gwr.sh" "$@"
+          exec "#{libexec}/orchestra.sh" "$@"
           ;;
         *)
           # CLI operations that may need directory switching
@@ -83,7 +83,7 @@ class Orchestra < Formula
           trap "rm -f '$tmpfile'" EXIT
           
           # Run CLI command and capture output in temp file
-          "#{libexec}/gw.sh" "$@" > "$tmpfile" 2>&1
+          "#{libexec}/orchestra-cli.sh" "$@" > "$tmpfile" 2>&1
           status=$?
           
           # Handle directory switching
@@ -112,12 +112,11 @@ class Orchestra < Formula
     
     # Test that wrapper scripts are accessible
     assert_predicate bin/"orchestra", :exist?
-    assert_predicate bin/"gwr", :exist?
-    assert_predicate bin/"gw", :exist?
+    assert_predicate bin/"orchestra-cli", :exist?
     assert_predicate bin/"orchestra-local", :exist?
     
     # Test basic help output (in a safe way)
-    output = shell_output("#{bin}/gw help 2>&1", 0)
+    output = shell_output("#{bin}/orchestra-cli help 2>&1", 0)
     assert_match(/Usage|Commands|Options/, output)
   end
 end
